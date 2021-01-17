@@ -181,7 +181,11 @@ var gsTabSuspendManager = (function() {
     }
 
     // Temporarily change tab.url to append youtube timestamp
-    const timestampedUrl = await generateUrlWithYouTubeTimestamp(tab);
+    var timestampedUrl = await generateUrlWithYouTubeTimestamp(tab);
+
+    // Temporarily change tab.url to append twitch timestamp
+    timestampedUrl = await generateUrlWithTwitchTimestamp(tab);
+
     // NOTE: This does not actually change the tab url, just the current tab object
     tab.url = timestampedUrl;
     await saveSuspendData(tab);
@@ -449,6 +453,47 @@ var gsTabSuspendManager = (function() {
   function fetchYouTubeTimestampContentScript() {
     const videoEl = document.querySelector(
       'video.video-stream.html5-main-video'
+    );
+    const timestamp = videoEl ? videoEl.currentTime >> 0 : 0;
+    return timestamp;
+  }
+
+  function generateUrlWithTwitchTimestamp(tab) {
+    return new Promise(resolve => {
+      if (tab.url.indexOf('https://www.twitch.tv/videos') < 0) {
+        resolve(tab.url);
+        return;
+      }
+
+      gsMessages.executeCodeOnTab(
+        tab.id,
+        `(${fetchTwitchTimestampContentScript})();`,
+        (error, response) => {
+          if (error) {
+            gsUtils.warning(
+              tab.id,
+              QUEUE_ID,
+              'Failed to fetch Twitch timestamp',
+              error
+            );
+          }
+          if (!response) {
+            resolve(tab.url);
+            return;
+          }
+
+          const timestamp = response;
+          const twitchUrl = new URL(tab.url);
+          twitchUrl.searchParams.set('t', timestamp + 's');
+          resolve(twitchUrl.href);
+        }
+      );
+    });
+  }
+
+  function fetchTwitchTimestampContentScript() {
+    const videoEl = document.querySelector(
+      'video'
     );
     const timestamp = videoEl ? videoEl.currentTime >> 0 : 0;
     return timestamp;
