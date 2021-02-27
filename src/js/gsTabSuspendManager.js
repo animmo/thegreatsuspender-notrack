@@ -181,13 +181,14 @@ var gsTabSuspendManager = (function() {
     }
 
     // Temporarily change tab.url to append youtube timestamp
-    var timestampedUrl = await generateUrlWithYouTubeTimestamp(tab);
+    var youtubeTimestampedUrl = await generateUrlWithYouTubeTimestamp(tab);
+    // NOTE: This does not actually change the tab url, just the current tab object
+    tab.url = youtubeTimestampedUrl;
 
     // Temporarily change tab.url to append twitch timestamp
-    timestampedUrl = await generateUrlWithTwitchTimestamp(tab);
+    var twitchTimestampedUrl = await generateUrlWithTwitchTimestamp(tab);
+    tab.url = twitchTimestampedUrl;
 
-    // NOTE: This does not actually change the tab url, just the current tab object
-    tab.url = timestampedUrl;
     await saveSuspendData(tab);
 
     const suspendedUrl = gsUtils.generateSuspendedUrl(
